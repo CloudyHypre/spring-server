@@ -26,30 +26,15 @@ CLIENTFLAGS = -DIS_SERVER=0 -DIS_CLIENT=1
 
 .PHONY: all install uninstall clean
 
-EXES = server client
-EXES_EX = example_server example_client
+EXES = client
 
 all: $(EXES)
-
-example: $(EXES_EX)
-
-server: $(OBJ_MODS)/termflag.o $(OBJ_MODS)/mainsocket.o $(OBJ_MODS)/inputpayload.o $(OBJ_MODS)/inputcommand.o $(OBJ_MODS)/nextperiodic.o $(OBJ_MODS)/sockettime.o $(OBJ_MODS)/readlist.o $(OBJ_MODS)/socketlist.o $(OBJ_MODS)/disconnectfunction.o $(OBJ_MODS)/connectfunction.o $(OBJ_MODS)/command.o $(OBJ_MODS)/periodic.o $(OBJ_MODS)/network.o $(OBJ_MODS)/log.o $(OBJ_MODS)/component.o $(OBJ_MODS)/main_server.o $(OBJ)/server.o | $(BIN)
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 client: $(OBJ_MODS)/termflag.o $(OBJ_MODS)/mainsocket.o $(OBJ_MODS)/inputpayload.o $(OBJ_MODS)/inputcommand.o $(OBJ_MODS)/nextperiodic.o $(OBJ_MODS)/sockettime.o $(OBJ_MODS)/readlist.o $(OBJ_MODS)/socketlist.o $(OBJ_MODS)/disconnectfunction.o $(OBJ_MODS)/connectfunction.o $(OBJ_MODS)/command.o $(OBJ_MODS)/periodic.o $(OBJ_MODS)/network.o $(OBJ_MODS)/log.o $(OBJ_MODS)/component.o $(OBJ_MODS)/main_client.o $(OBJ)/client.o | $(BIN)
 	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
-example_server: $(OBJ_MODS)/termflag.o $(OBJ_MODS)/mainsocket.o $(OBJ_MODS)/inputpayload.o $(OBJ_MODS)/inputcommand.o $(OBJ_MODS)/nextperiodic.o $(OBJ_MODS)/sockettime.o $(OBJ_MODS)/readlist.o $(OBJ_MODS)/socketlist.o $(OBJ_MODS)/disconnectfunction.o $(OBJ_MODS)/connectfunction.o $(OBJ_MODS)/command.o $(OBJ_MODS)/periodic.o $(OBJ_MODS)/network.o $(OBJ_MODS)/log.o $(OBJ_MODS)/component.o $(OBJ_MODS)/main_server.o $(OBJ_EX)/server.o | $(BIN)
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
-
-example_client: $(OBJ_MODS)/termflag.o $(OBJ_MODS)/mainsocket.o $(OBJ_MODS)/inputpayload.o $(OBJ_MODS)/inputcommand.o $(OBJ_MODS)/nextperiodic.o $(OBJ_MODS)/sockettime.o $(OBJ_MODS)/readlist.o $(OBJ_MODS)/socketlist.o $(OBJ_MODS)/disconnectfunction.o $(OBJ_MODS)/connectfunction.o $(OBJ_MODS)/command.o $(OBJ_MODS)/periodic.o $(OBJ_MODS)/network.o $(OBJ_MODS)/log.o $(OBJ_MODS)/component.o $(OBJ_MODS)/main_client.o $(OBJ_EX)/client.o | $(BIN)
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
-
 $(OBJ)/%.o: $(SRC)/%.c | $(OBJ)
 	$(CC) $(CFLAGS) -o $@ -c $<
-	
-$(OBJ_MODS)/main_server.o: $(SRC_MODS)/main.c | $(OBJ_MODS)
-	$(CC) $(CFLAGS) $(SERVERFLAGS) -o $@ -c $<
 	
 $(OBJ_MODS)/main_client.o: $(SRC_MODS)/main.c | $(OBJ_MODS)
 	$(CC) $(CFLAGS) $(CLIENTFLAGS) -o $@ -c $<

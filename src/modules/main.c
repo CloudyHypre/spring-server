@@ -5,7 +5,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <ctype.h>
 #include <signal.h>
@@ -25,14 +24,15 @@
 #include "modules/log.h"
 #include "modules/main.h"
 #include "config.h"
+#include <string.h>
 
 // Version Number
 #define VERSION "0.1.0"
 
 // Function prototypes
 void main_init(void);
-void main_sigint(int);
-void main_shutdown(const char *);
+int main_sigint(int);
+int main_shutdown(const char *);
 
 /*
  * The main function handles program initialization and network connection,
@@ -40,10 +40,9 @@ void main_shutdown(const char *);
  * it coordinates the flow of data between the modules, does error checking,
  * and logs pertinent info.
  */
-int main(int argc, char *argv[]) {
-	int o, r, s, i;
-	char *hostname, *portno;
-	
+int main_callable(char hostname[], char portno[]) {
+	int r, s, i;
+    
 	// Initialization functions
 	main_init();
 	
@@ -55,7 +54,7 @@ int main(int argc, char *argv[]) {
 	
 	// Ensure log was successfully opened
 	if (r < 0)
-		main_shutdown(log_get_errmsg());
+		return main_shutdown(log_get_errmsg());
 	
 	// Log startup message
 	log_write("Starting Up");
@@ -64,40 +63,23 @@ int main(int argc, char *argv[]) {
 	signal(SIGINT, main_sigint);
 
 	// Set default port
-	portno = malloc(6);
-	sprintf(portno, "%i", DEFAULT_PORT);
+    if (portno == NULL && strlen(DEFAULT_PORT) != 0) {
+        portno = malloc(6);
+        sprintf(portno, "%i", DEFAULT_PORT);
+    }
 
 	// Set default hostname
-	hostname = malloc(65);
-	if (strlen(DEFAULT_HOST) == 0)
-		hostname = NULL;
-	else
-		hostname = DEFAULT_HOST;
-
-	// Check arguments
-	while ((o = getopt(argc, argv, "h:p:v")) != -1) {
-		switch (o) {
-			case 'p':
-				portno = optarg;
-				break;
-			case 'h':
-				hostname = optarg;
-				break;
-			case 'v':
-				printf("spring server version " VERSION "\n");
-				return 0;
-			case '?':
-				if (isprint(optopt))
-					log_print("Unknown option '-%c'.", optopt);
-				else
-					log_print("Unknown option character '\\x%x'.", optopt);
-				main_shutdown("Invalid command option(s).");
-		}
-	}
+    if (hostname == NULL && strlen(DEFAULT_HOST) != 0) {
+        hostname = malloc(65);
+        hostname = DEFAULT_HOST;
+    }
 	
 	// Log host and port
 	log_write("host=%s port=%s", hostname, portno);
 
+    printf("hostname: %s\n", hostname);
+    printf("port: %s\n", portno);
+    
 	// Execute network startup proceedure
 	if (IS_SERVER)
 		r = network_start_server(hostname, portno);
@@ -106,7 +88,7 @@ int main(int argc, char *argv[]) {
 	
 	// Check for error at startup
 	if (r < 0)
-		main_shutdown(network_get_errmsg());
+		return main_shutdown(network_get_errmsg());
 	
 	// Print connection message
 	log_print("%s on port %s", IS_SERVER ? "Listening" : "Connected", portno);
@@ -138,7 +120,7 @@ int main(int argc, char *argv[]) {
 		
 		// Shutdown if we get an error code
 		if (r < 0)
-			main_shutdown("select() error");
+			return main_shutdown("select() error");
 
 		// If we get incoming data on the main socket for the server
 		// then we have a new client attempting to connect.
@@ -152,7 +134,7 @@ int main(int argc, char *argv[]) {
 
 			// Shut down if we get an error code
 			if (r < 0)
-				main_shutdown("accept() error");
+				return main_shutdown("accept() error");
 
 			// Add new socket to our socket list
 			socketlist_add(r);
@@ -169,7 +151,7 @@ int main(int argc, char *argv[]) {
 			
 			// Check if termflag was set in connect function
 			if (termflag_isset())
-				main_shutdown("Terminated.");
+				return main_shutdown("Terminated.");
 		}
 
 		// Loop over readlist and service each socket
@@ -180,7 +162,7 @@ int main(int argc, char *argv[]) {
 			
 			// Shut down if we get an error code
 			if (r < 0)
-				main_shutdown("read() error");
+				return main_shutdown("read() error");
 
 			// Check if socket terminated the connection
 			if (r == 0) {
@@ -192,14 +174,14 @@ int main(int argc, char *argv[]) {
 					network_close(s);
 					socketlist_remove(s);
 				} else
-					main_shutdown("Server terminated connection.");
+					return main_shutdown("Server terminated connection.");
 				
 				// Execute disconnect function
 				disconnectfunction_exec(s);
 				
 				// Check if termflag was set in disconnect function
 				if (termflag_isset())
-					main_shutdown("Terminated.");
+					return main_shutdown("Terminated.");
 				
 				// Force next loop iteration.
 				continue;
@@ -224,7 +206,7 @@ int main(int argc, char *argv[]) {
 					
 				// Check if termflag was set in command function
 				if (termflag_isset())
-					main_shutdown("Terminated.");
+					return main_shutdown("Terminated.");
 			}
 		}
 		
@@ -246,7 +228,7 @@ int main(int argc, char *argv[]) {
 		
 		// Check if termflag was set in periodic function
 		if (termflag_isset())
-			main_shutdown("Terminated.");
+			return main_shutdown("Terminated.");
 		
 	}
 
@@ -284,9 +266,9 @@ void main_init(void) {
  * is called when the user presses CTRL-C. It's job is to simply call the
  * main_shutdown() function to ensure a proper shutdown.
  */
-void main_sigint(int e) {
+int main_sigint(int e) {
 	(void)e;
-	main_shutdown("Caught sigint.");
+	return main_shutdown("Caught sigint.");
 }
 
 /*
@@ -295,7 +277,7 @@ void main_sigint(int e) {
  * function for each socket ensuring any customized cleanup tasks are also
  * completed.
  */
-void main_shutdown(const char *errmsg) {
+int main_shutdown(const char *errmsg) {
 	int i;
 	
 	// Log a shutdown message
@@ -313,6 +295,7 @@ void main_shutdown(const char *errmsg) {
 	log_close();
 	
 	// Shutdown
-	exit(1);
+	return 1;
+    exit(1);
 }
 

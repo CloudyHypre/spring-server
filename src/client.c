@@ -5,6 +5,19 @@
 
 // Required header for custom functions. Do not remove.
 #include "modules/component.h"
+#include <stdio.h>
+#include <unistd.h>
+
+#define VERSION "0.1.0"
+
+// Copy and paste the function templates below to start creating your
+// custom functions.
+
+int main_callable(char *hostname, char *portno);
+void main_init(void);
+int main_sigint(int);
+int main_shutdown(const char *);
+int isprint (int c);
 
 // Copy and paste the function templates below to start creating your
 // custom functions.
@@ -53,3 +66,46 @@ void client_init(void) {
 	// add_command_function("cmnd", &function_name);
 
 }
+
+
+int main(int argc, char *argv[]) {
+    
+    char *hostname, *portno;
+    int o;
+    
+    // Check arguments
+    while ((o = getopt(argc, argv, "h:p:v")) != -1) {
+        switch (o) {
+            case 'p':
+                portno = optarg;
+                break;
+            case 'h':
+                hostname = optarg;
+                break;
+            case 'v':
+                printf("spring server version " VERSION "\n");
+                return 0;
+            case '?':
+                if (isprint(optopt))
+                    log_print("Unknown option '-%c'.", optopt);
+                else
+                    log_print("Unknown option character '\\x%x'.", optopt);
+                return main_shutdown("Invalid command option(s).");
+        }
+    }
+    
+//     int argcCopy = malloc(sizeof(int));
+//     argcCopy = argc;
+    
+//     char** argvCopy = argv;
+    
+    printf("first connection\n");
+    main_callable(hostname, portno);
+    
+    printf("second connection\n");
+    main_callable(hostname, portno);
+    
+    printf("third connection\n");
+    main_callable(hostname, portno);
+}
+
